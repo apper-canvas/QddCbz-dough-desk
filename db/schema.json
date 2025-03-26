@@ -1,0 +1,233 @@
+{
+  "tables": {
+    "users": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "name": "VARCHAR(100) NOT NULL",
+        "email": "VARCHAR(100) UNIQUE NOT NULL",
+        "phone": "VARCHAR(20)",
+        "password_hash": "VARCHAR(100) NOT NULL",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["email"]
+    },
+    
+    "categories": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "name": "VARCHAR(50) UNIQUE NOT NULL",
+        "description": "TEXT",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      }
+    },
+    
+    "products": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "name": "VARCHAR(100) NOT NULL",
+        "description": "TEXT NOT NULL",
+        "category_id": "INTEGER REFERENCES categories(id) ON DELETE SET NULL",
+        "price": "DECIMAL(10, 2) NOT NULL",
+        "featured": "BOOLEAN DEFAULT FALSE",
+        "active": "BOOLEAN DEFAULT TRUE",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["category_id", "featured"]
+    },
+    
+    "product_images": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "product_id": "INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE",
+        "image_url": "VARCHAR(255) NOT NULL",
+        "is_primary": "BOOLEAN DEFAULT FALSE",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["product_id"]
+    },
+    
+    "product_variants": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "product_id": "INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE",
+        "name": "VARCHAR(50) NOT NULL",
+        "price_adjustment": "DECIMAL(10, 2) DEFAULT 0.00",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["product_id"]
+    },
+    
+    "inventory": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "product_id": "INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE",
+        "variant_id": "INTEGER REFERENCES product_variants(id) ON DELETE CASCADE",
+        "quantity": "INTEGER NOT NULL DEFAULT 0",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["product_id", "variant_id"],
+      "unique_constraints": [["product_id", "variant_id"]]
+    },
+    
+    "addresses": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "user_id": "INTEGER REFERENCES users(id) ON DELETE CASCADE",
+        "full_address": "TEXT NOT NULL",
+        "city": "VARCHAR(100) NOT NULL",
+        "state": "VARCHAR(100) NOT NULL",
+        "postal_code": "VARCHAR(20) NOT NULL",
+        "country": "VARCHAR(100) DEFAULT 'United States'",
+        "is_default": "BOOLEAN DEFAULT FALSE",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["user_id"]
+    },
+    
+    "carts": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "user_id": "INTEGER REFERENCES users(id) ON DELETE CASCADE",
+        "session_id": "VARCHAR(100)",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["user_id", "session_id"]
+    },
+    
+    "cart_items": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "cart_id": "INTEGER NOT NULL REFERENCES carts(id) ON DELETE CASCADE",
+        "product_id": "INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE",
+        "variant_id": "INTEGER REFERENCES product_variants(id) ON DELETE SET NULL",
+        "quantity": "INTEGER NOT NULL DEFAULT 1",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["cart_id", "product_id"]
+    },
+    
+    "orders": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "user_id": "INTEGER REFERENCES users(id) ON DELETE SET NULL",
+        "address_id": "INTEGER REFERENCES addresses(id) ON DELETE SET NULL",
+        "customer_name": "VARCHAR(100) NOT NULL",
+        "customer_email": "VARCHAR(100)",
+        "customer_phone": "VARCHAR(20) NOT NULL",
+        "delivery_address": "TEXT NOT NULL",
+        "delivery_date": "DATE NOT NULL",
+        "delivery_time": "TIME NOT NULL",
+        "special_instructions": "TEXT",
+        "subtotal": "DECIMAL(10, 2) NOT NULL",
+        "delivery_fee": "DECIMAL(10, 2) NOT NULL DEFAULT 5.00",
+        "tax": "DECIMAL(10, 2) NOT NULL DEFAULT 0.00",
+        "total_amount": "DECIMAL(10, 2) NOT NULL",
+        "payment_method": "VARCHAR(20) NOT NULL CHECK (payment_method IN ('card', 'cash'))",
+        "payment_status": "VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed'))",
+        "order_status": "VARCHAR(20) DEFAULT 'pending' CHECK (order_status IN ('pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'))",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["user_id", "order_status", "payment_status", "delivery_date"]
+    },
+    
+    "order_items": {
+      "fields": {
+        "id": "SERIAL PRIMARY KEY",
+        "order_id": "INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE",
+        "product_id": "INTEGER NOT NULL REFERENCES products(id) ON DELETE SET NULL",
+        "product_name": "VARCHAR(100) NOT NULL",
+        "variant_id": "INTEGER REFERENCES product_variants(id) ON DELETE SET NULL",
+        "variant_name": "VARCHAR(50)",
+        "price": "DECIMAL(10, 2) NOT NULL",
+        "quantity": "INTEGER NOT NULL DEFAULT 1",
+        "subtotal": "DECIMAL(10, 2) NOT NULL",
+        "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"
+      },
+      "indexes": ["order_id", "product_id"]
+    }
+  },
+  
+  "initialData": {
+    "categories": [
+      {"name": "Bread", "description": "Freshly baked bread loaves and rolls"},
+      {"name": "Pastries", "description": "Flaky and delicious pastry items"},
+      {"name": "Muffins", "description": "Sweet and savory muffins"},
+      {"name": "Cakes", "description": "Celebration and everyday cakes"}
+    ],
+    
+    "products": [
+      {
+        "name": "Sourdough Bread",
+        "description": "Artisanal sourdough with a crispy crust and chewy interior",
+        "category": "Bread",
+        "price": 6.99,
+        "image": "https://images.unsplash.com/photo-1585478259715-4d3a5428a6f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["White", "Whole Wheat", "Rye"]
+      },
+      {
+        "name": "Chocolate Croissant",
+        "description": "Buttery, flaky pastry filled with rich chocolate",
+        "category": "Pastries",
+        "price": 3.99,
+        "image": "https://images.unsplash.com/photo-1608198093002-ad4e005484ec?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["Plain", "Chocolate", "Almond"]
+      },
+      {
+        "name": "Blueberry Muffin",
+        "description": "Moist muffin packed with fresh blueberries",
+        "category": "Muffins",
+        "price": 2.99,
+        "image": "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["Blueberry", "Chocolate Chip", "Bran"]
+      },
+      {
+        "name": "Cinnamon Roll",
+        "description": "Soft, gooey roll with cinnamon swirl and cream cheese frosting",
+        "category": "Pastries",
+        "price": 4.49,
+        "image": "https://images.unsplash.com/photo-1509365465985-25d11c17e812?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["Classic", "Pecan", "Caramel"]
+      },
+      {
+        "name": "Baguette",
+        "description": "Traditional French bread with a crispy exterior",
+        "category": "Bread",
+        "price": 3.49,
+        "image": "https://images.unsplash.com/photo-1549931319-a545dcf3bc7c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["Traditional", "Sesame", "Multigrain"]
+      },
+      {
+        "name": "Red Velvet Cupcake",
+        "description": "Classic red velvet with cream cheese frosting",
+        "category": "Cakes",
+        "price": 3.99,
+        "image": "https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
+        "variants": ["Red Velvet", "Chocolate", "Vanilla"]
+      }
+    ]
+  },
+  
+  "comments": {
+    "general": "This schema supports the bakery e-commerce application with product management, shopping cart functionality, and custom order processing.",
+    "tableRelationships": [
+      "products belong to categories",
+      "product_variants belong to products",
+      "inventory tracks stock for products and their variants",
+      "orders contain order_items which reference products",
+      "carts contain cart_items which reference products",
+      "addresses belong to users",
+      "orders can reference users and addresses"
+    ],
+    "authentication": "For a complete implementation, consider adding authentication tables or using a service like Auth0, Firebase Auth, etc.",
+    "migrations": "Use a migration tool to set up this schema and manage future changes to the database structure.",
+    "backup": "Implement regular database backups to prevent data loss."
+  }
+}
